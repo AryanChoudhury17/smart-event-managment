@@ -1,0 +1,311 @@
+// This is your Prisma schema file
+// Learn more: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// =============================================================================
+// AUTH MODELS
+// =============================================================================
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  role          UserRole  @default(FAN)
+  language      String    @default("en")
+  accessibilityMode Boolean @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts      Account[]
+  sessions      Session[]
+  chatSessions  ChatSession[]
+  alerts        Alert[]
+  volunteerProfile VolunteerProfile?
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// =============================================================================
+// STADIUM MODELS
+// =============================================================================
+
+model Stadium {
+  id          String   @id @default(cuid())
+  name        String
+  city        String
+  country     String
+  capacity    Int
+  latitude    Float
+  longitude   Float
+  timezone    String
+  gates       Gate[]
+  sections    Section[]
+  amenities   Amenity[]
+  crowdData   CrowdData[]
+  incidents   Incident[]
+  createdAt   DateTime @default(now())
+
+  @@map("stadiums")
+}
+
+model Gate {
+  id          String   @id @default(cuid())
+  stadiumId   String
+  name        String
+  code        String
+  isOpen      Boolean  @default(true)
+  queueLength Int      @default(0)
+  capacity    Int
+  isAccessible Boolean @default(false)
+  stadium     Stadium  @relation(fields: [stadiumId], references: [id])
+
+  @@map("gates")
+}
+
+model Section {
+  id          String   @id @default(cuid())
+  stadiumId   String
+  name        String
+  level       Int
+  isAccessible Boolean @default(false)
+  stadium     Stadium  @relation(fields: [stadiumId], references: [id])
+
+  @@map("sections")
+}
+
+model Amenity {
+  id          String       @id @default(cuid())
+  stadiumId   String
+  type        AmenityType
+  name        String
+  level       Int
+  section     String?
+  isAccessible Boolean     @default(false)
+  queueLength Int          @default(0)
+  isOpen      Boolean      @default(true)
+  latitude    Float?
+  longitude   Float?
+  stadium     Stadium      @relation(fields: [stadiumId], references: [id])
+
+  @@map("amenities")
+}
+
+model CrowdData {
+  id          String   @id @default(cuid())
+  stadiumId   String
+  timestamp   DateTime @default(now())
+  totalCount  Int
+  density     Float    // 0-1 scale
+  hotspots    Json     // Array of {x, y, density} points
+  gateData    Json     // Per-gate counts
+  stadium     Stadium  @relation(fields: [stadiumId], references: [id])
+
+  @@index([stadiumId, timestamp])
+  @@map("crowd_data")
+}
+
+model Incident {
+  id          String         @id @default(cuid())
+  stadiumId   String
+  type        IncidentType
+  severity    Severity
+  title       String
+  description String         @db.Text
+  location    String
+  status      IncidentStatus @default(OPEN)
+  aiSummary   String?        @db.Text
+  resolvedAt  DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  stadium     Stadium        @relation(fields: [stadiumId], references: [id])
+
+  @@index([stadiumId, status])
+  @@map("incidents")
+}
+
+// =============================================================================
+// AI CHAT MODELS
+// =============================================================================
+
+model ChatSession {
+  id          String        @id @default(cuid())
+  userId      String?
+  sessionType SessionType
+  language    String        @default("en")
+  messages    ChatMessage[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  user        User?         @relation(fields: [userId], references: [id])
+
+  @@map("chat_sessions")
+}
+
+model ChatMessage {
+  id            String      @id @default(cuid())
+  sessionId     String
+  role          MessageRole
+  content       String      @db.Text
+  metadata      Json?
+  tokensUsed    Int?
+  responseTime  Int?        // milliseconds
+  createdAt     DateTime    @default(now())
+  session       ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId, createdAt])
+  @@map("chat_messages")
+}
+
+// =============================================================================
+// VOLUNTEER MODELS
+// =============================================================================
+
+model VolunteerProfile {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  languages   String[]
+  skills      String[]
+  zone        String?
+  shift       String?
+  isActive    Boolean  @default(true)
+  tasksCompleted Int   @default(0)
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id])
+
+  @@map("volunteer_profiles")
+}
+
+model Alert {
+  id          String     @id @default(cuid())
+  userId      String?
+  type        AlertType
+  title       String
+  message     String     @db.Text
+  severity    Severity
+  isRead      Boolean    @default(false)
+  createdAt   DateTime   @default(now())
+  user        User?      @relation(fields: [userId], references: [id])
+
+  @@map("alerts")
+}
+
+// =============================================================================
+// ENUMS
+// =============================================================================
+
+enum UserRole {
+  FAN
+  VOLUNTEER
+  STAFF
+  ORGANIZER
+  ADMIN
+}
+
+enum AmenityType {
+  RESTROOM
+  FOOD_COURT
+  FIRST_AID
+  INFORMATION
+  MERCHANDISE
+  ATM
+  PARKING
+  TRANSPORT
+}
+
+enum IncidentType {
+  CROWD_CONGESTION
+  MEDICAL
+  SECURITY
+  INFRASTRUCTURE
+  WEATHER
+  OTHER
+}
+
+enum Severity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum IncidentStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum SessionType {
+  NAVIGATION
+  CROWD
+  MULTILINGUAL
+  ACCESSIBILITY
+  TRANSPORTATION
+  SUSTAINABILITY
+  VOLUNTEER
+  OPERATIONS
+  GENERAL
+}
+
+enum MessageRole {
+  USER
+  ASSISTANT
+  SYSTEM
+}
+
+enum AlertType {
+  CROWD
+  TRANSPORT
+  WEATHER
+  INCIDENT
+  SYSTEM
+  VOLUNTEER
+}

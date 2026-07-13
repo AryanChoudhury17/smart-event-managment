@@ -1,0 +1,281 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@400;500;600;700;800;900&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* =============================================================================
+   CSS CUSTOM PROPERTIES — FIFA DARK THEME
+   ============================================================================= */
+:root {
+  /* Brand Colors */
+  --color-fifa-blue: hsl(214, 100%, 50%);
+  --color-fifa-gold: hsl(43, 100%, 50%);
+  --color-fifa-red: hsl(0, 80%, 50%);
+  --color-fifa-green: hsl(142, 76%, 36%);
+
+  /* Dark Theme Background */
+  --bg-primary: hsl(220, 20%, 8%);
+  --bg-secondary: hsl(220, 18%, 11%);
+  --bg-tertiary: hsl(220, 15%, 15%);
+  --bg-card: hsl(220, 16%, 13%);
+  --bg-glass: hsla(220, 20%, 15%, 0.7);
+
+  /* Text */
+  --text-primary: hsl(210, 40%, 96%);
+  --text-secondary: hsl(215, 20%, 65%);
+  --text-muted: hsl(215, 15%, 45%);
+
+  /* Borders */
+  --border-primary: hsl(220, 15%, 20%);
+  --border-accent: hsl(214, 80%, 40%);
+
+  /* Gradients */
+  --gradient-brand: linear-gradient(135deg, hsl(214, 100%, 50%) 0%, hsl(271, 80%, 56%) 100%);
+  --gradient-gold: linear-gradient(135deg, hsl(43, 100%, 50%) 0%, hsl(30, 100%, 55%) 100%);
+  --gradient-dark: linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+
+  /* Shadows */
+  --shadow-glow-blue: 0 0 30px hsla(214, 100%, 50%, 0.2);
+  --shadow-glow-gold: 0 0 30px hsla(43, 100%, 50%, 0.2);
+  --shadow-card: 0 4px 24px hsla(0, 0%, 0%, 0.4);
+
+  /* Spacing */
+  --sidebar-width: 260px;
+  --header-height: 64px;
+
+  /* Radius */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+}
+
+/* =============================================================================
+   BASE STYLES
+   ============================================================================= */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: "Inter", system-ui, sans-serif;
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* Focus visible for keyboard nav */
+:focus-visible {
+  outline: 2px solid var(--color-fifa-blue);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* Skip to main content */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--color-fifa-blue);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 0 0 8px 8px;
+  font-weight: 600;
+  z-index: 9999;
+  transition: top 0.2s;
+}
+
+.skip-link:focus {
+  top: 0;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-primary);
+  border-radius: 100px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* =============================================================================
+   COMPONENT STYLES
+   ============================================================================= */
+@layer components {
+  /* Glass card */
+  .glass-card {
+    background: var(--bg-glass);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-lg);
+  }
+
+  /* Gradient border */
+  .gradient-border {
+    position: relative;
+  }
+
+  .gradient-border::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: var(--gradient-brand);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+  }
+
+  /* AI Typing animation */
+  .typing-indicator {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    padding: 4px 0;
+  }
+
+  .typing-indicator span {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--color-fifa-blue);
+    animation: typing-bounce 1.2s ease-in-out infinite;
+  }
+
+  .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+  .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+
+  /* Heatmap overlay */
+  .heatmap-cell {
+    transition: background-color 0.5s ease;
+  }
+
+  /* Status badge */
+  .status-critical { @apply bg-red-500/20 text-red-400 border-red-500/30; }
+  .status-high { @apply bg-orange-500/20 text-orange-400 border-orange-500/30; }
+  .status-medium { @apply bg-yellow-500/20 text-yellow-400 border-yellow-500/30; }
+  .status-low { @apply bg-green-500/20 text-green-400 border-green-500/30; }
+
+  /* Metric card */
+  .metric-card {
+    @apply glass-card p-5 flex flex-col gap-2;
+  }
+
+  /* Nav item */
+  .nav-item {
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium
+           text-[var(--text-secondary)] hover:text-[var(--text-primary)]
+           hover:bg-[var(--bg-tertiary)] transition-all duration-200;
+  }
+
+  .nav-item.active {
+    @apply bg-blue-600/15 text-blue-400 border border-blue-500/20;
+  }
+}
+
+/* =============================================================================
+   ANIMATIONS
+   ============================================================================= */
+@keyframes typing-bounce {
+  0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+  40% { transform: translateY(-6px); opacity: 1; }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 20px hsla(214, 100%, 50%, 0.2); }
+  50% { box-shadow: 0 0 40px hsla(214, 100%, 50%, 0.5); }
+}
+
+@keyframes slide-in-up {
+  from { transform: translateY(16px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-slide-in-up {
+  animation: slide-in-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease forwards;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 3s ease-in-out infinite;
+}
+
+/* Skeleton loader */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--bg-tertiary) 25%,
+    var(--bg-card) 50%,
+    var(--bg-tertiary) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* =============================================================================
+   HIGH CONTRAST MODE
+   ============================================================================= */
+@media (prefers-contrast: high) {
+  :root {
+    --text-primary: hsl(0, 0%, 100%);
+    --text-secondary: hsl(0, 0%, 90%);
+    --border-primary: hsl(0, 0%, 50%);
+    --bg-card: hsl(0, 0%, 5%);
+  }
+}
+
+/* =============================================================================
+   REDUCED MOTION
+   ============================================================================= */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* =============================================================================
+   PRINT STYLES
+   ============================================================================= */
+@media print {
+  .no-print { display: none !important; }
+  body { background: white; color: black; }
+}
