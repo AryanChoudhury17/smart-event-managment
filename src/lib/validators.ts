@@ -27,7 +27,8 @@ export const ChatMessageSchema = z.object({
     .string()
     .min(1, "Message cannot be empty")
     .max(2000, "Message too long (max 2000 characters)")
-    .trim(),
+    .trim()
+    .transform((val) => sanitizeInput(val)),
   sessionType: z
     .enum([
       "NAVIGATION",
@@ -48,6 +49,53 @@ export const ChatMessageSchema = z.object({
 });
 
 export type ChatMessageInput = z.infer<typeof ChatMessageSchema>;
+
+// =============================================================================
+// SECURITY & SANITIZATION
+// =============================================================================
+
+/**
+ * Sanitize user input to prevent XSS attacks
+ * Removes HTML tags and dangerous characters
+ */
+export function sanitizeInput(input: string): string {
+  if (typeof input !== "string") return "";
+
+  return input
+    .replace(/[<>]/g, "") // Remove angle brackets
+    .replace(/javascript:/gi, "") // Remove javascript protocol
+    .replace(/on\w+\s*=/gi, "") // Remove event handlers
+    .trim()
+    .substring(0, 2000);
+}
+
+/**
+ * Validate email format
+ */
+export function isValidEmail(email: string): boolean {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email.trim().toLowerCase());
+}
+
+/**
+ * Validate UUID format
+ */
+export function isValidUUID(uuid: string): boolean {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(uuid);
+}
+
+/**
+ * Safely parse JSON
+ */
+export function safeParseJSON<T>(json: string, fallback: T): T {
+  try {
+    return JSON.parse(json) as T;
+  } catch (error) {
+    console.error("JSON parse error:", error);
+    return fallback;
+  }
+}
 
 // =============================================================================
 // AUTH SCHEMAS

@@ -6,9 +6,9 @@
 import OpenAI from "openai";
 import type { SessionType, SupportedLanguage } from "@/types";
 
-/** OpenAI client singleton */
+/** OpenAI client singleton - uses dummy key during build if not configured */
 export const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: process.env.OPENAI_API_KEY || "sk-build-dummy-key-do-not-use",
 });
 
 /** Default model configuration */

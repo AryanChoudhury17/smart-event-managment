@@ -78,7 +78,7 @@ export const ACTIVE_STADIUM = DEMO_STADIUMS[0] as Stadium;
 // =============================================================================
 
 export function generateCrowdHotspots() {
-  return Array.from({ length: 20 }, (_, i) => ({
+  return Array.from({ length: 20 }, (_, _i) => ({
     x: Math.random() * 100,
     y: Math.random() * 100,
     density: Math.random(),

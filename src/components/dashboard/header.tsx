@@ -8,7 +8,6 @@
 import { Bell, Search, Wifi } from "lucide-react";
 import { useOperationsStore, useUserPreferenceStore } from "@/store";
 import { SUPPORTED_LANGUAGES } from "@/lib/demo-data";
-import { cn } from "@/lib/utils";
 
 /**
  * Dashboard top header bar

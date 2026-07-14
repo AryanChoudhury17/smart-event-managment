@@ -3,7 +3,7 @@
  * @module components/dashboard/metric-card
  */
 
-import { cn, getSeverityClass } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 interface MetricCardProps {
   title: string;

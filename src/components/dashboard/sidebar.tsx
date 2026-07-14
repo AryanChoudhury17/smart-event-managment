@@ -115,7 +115,7 @@ export function DashboardSidebar() {
                 return (
                   <li key={item.href}>
                     <Link
-                      href={item.href}
+                      href={item.href as any}
                       className={cn(
                         "nav-item w-full",
                         isActive && "active",
