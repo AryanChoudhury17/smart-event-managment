@@ -41,7 +41,7 @@ export function handleAPIError(error: unknown): {
   if (error instanceof AppError) {
     return {
       statusCode: error.statusCode,
-      message: error.message,
+      message: error.isOperational ? error.message : "An unexpected error occurred",
       error: error.toJSON(),
     };
   }

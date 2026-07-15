@@ -10,28 +10,30 @@ import { NextRequest, NextResponse } from "next/server";
 // ============================================================================
 
 /**
- * Apply security headers to responses
+ * Apply security headers to a response-like object or a plain Headers instance.
  */
-export function addSecurityHeaders(response: NextResponse): NextResponse {
+export function addSecurityHeaders<T extends Headers | Response | NextResponse>(response: T): T {
+  const headers = response instanceof Headers ? response : response.headers;
+
   // Prevent XSS
-  response.headers.set("X-Content-Type-Options", "nosniff");
-  response.headers.set("X-Frame-Options", "DENY");
-  response.headers.set("X-XSS-Protection", "1; mode=block");
+  headers.set("X-Content-Type-Options", "nosniff");
+  headers.set("X-Frame-Options", "DENY");
+  headers.set("X-XSS-Protection", "1; mode=block");
 
   // Content Security Policy
-  response.headers.set(
+  headers.set(
     "Content-Security-Policy",
     "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' https: data:; connect-src 'self' https://api.openai.com; font-src 'self' https://fonts.googleapis.com; frame-ancestors 'none';",
   );
 
   // CORS
-  response.headers.set("Access-Control-Allow-Credentials", "true");
-  response.headers.set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-  response.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  headers.set("Access-Control-Allow-Credentials", "true");
+  headers.set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
   // Performance & Caching
-  response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
-  response.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=(self)");
+  headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=(self)");
 
   return response;
 }
@@ -57,23 +59,34 @@ export function withCORSHeaders(request: NextRequest, response: NextResponse): N
 }
 
 /**
- * Rate limiting middleware
+ * Lightweight in-memory rate limiter with a simple sliding-window implementation.
  */
 export class RateLimiter {
   private requests: Map<string, number[]> = new Map();
   private readonly windowMs: number;
   private readonly maxRequests: number;
 
-  constructor(windowMs: number = 60 * 1000, maxRequests: number = 100) {
+  constructor(maxRequests: number = 100, windowMs: number = 60 * 1000) {
     this.windowMs = windowMs;
     this.maxRequests = maxRequests;
   }
 
+  private getActiveTimestamps(key: string, now: number): number[] {
+    const windowStart = now - this.windowMs;
+    const timestamps = (this.requests.get(key) || []).filter((timestamp) => timestamp > windowStart);
+
+    if (timestamps.length === 0) {
+      this.requests.delete(key);
+      return [];
+    }
+
+    this.requests.set(key, timestamps);
+    return timestamps;
+  }
+
   isAllowed(key: string): boolean {
     const now = Date.now();
-    const windowStart = now - this.windowMs;
-
-    const timestamps = (this.requests.get(key) || []).filter((t) => t > windowStart);
+    const timestamps = this.getActiveTimestamps(key, now);
 
     if (timestamps.length >= this.maxRequests) {
       return false;
@@ -81,17 +94,24 @@ export class RateLimiter {
 
     timestamps.push(now);
     this.requests.set(key, timestamps);
-
     return true;
   }
 
-  getRemaining(key: string): number {
+  getRemainingRequests(key: string): number {
     const now = Date.now();
-    const windowStart = now - this.windowMs;
-
-    const timestamps = (this.requests.get(key) || []).filter((t) => t > windowStart);
-
+    const timestamps = this.getActiveTimestamps(key, now);
     return Math.max(0, this.maxRequests - timestamps.length);
+  }
+
+  getResetTime(key: string): number {
+    const now = Date.now();
+    const timestamps = this.getActiveTimestamps(key, now);
+    if (timestamps.length === 0) {
+      return now + this.windowMs;
+    }
+
+    const oldest = timestamps[0] ?? now;
+    return oldest + this.windowMs;
   }
 }
 
@@ -130,20 +150,31 @@ export function verifyCSRFToken(token: string, sessionToken: string): boolean {
 }
 
 /**
- * Validate request origin
+ * Validate request origin, accepting either a request-like object or a raw origin string.
  */
-export function isValidOrigin(request: NextRequest): boolean {
-  const origin = request.headers.get("origin");
+export function isValidOrigin(value: string | NextRequest | Request | { headers: Headers }): boolean {
+  let origin: string | null = null;
 
-  if (!origin) {
-    return true; // Allow requests without origin header
+  if (typeof value === "string") {
+    origin = value;
+  } else if (value && typeof value === "object" && "headers" in value) {
+    origin = value.headers.get("origin");
   }
 
+  if (!origin) {
+    return true;
+  }
+
+  const normalizedOrigin = origin.toLowerCase();
   const allowedOrigins = [
     "http://localhost:3000",
     "http://localhost:3001",
-    process.env.NEXT_PUBLIC_APP_URL || "",
-  ];
+    "https://localhost:3000",
+    "https://localhost:3001",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:3001",
+    process.env.NEXT_PUBLIC_APP_URL?.toLowerCase() || "",
+  ].filter(Boolean);
 
-  return allowedOrigins.some((allowed) => origin === allowed);
+  return allowedOrigins.some((allowed) => normalizedOrigin === allowed.toLowerCase());
 }
