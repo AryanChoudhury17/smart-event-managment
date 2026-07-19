@@ -8,7 +8,7 @@
 [![OpenAI](https://img.shields.io/badge/OpenAI-API-412991?style=flat-square&logo=openai)](https://openai.com)
 
 ---
-
+ 
 ## ✨ Features
 
 - 🤖 **AI Chat Assistant** - Intelligent stadium navigation and fan support
